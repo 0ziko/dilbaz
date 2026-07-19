@@ -1,68 +1,88 @@
 import SwiftUI
 
 /// Faz 0 — çoklu platform adaptif yerleşim temeli.
-/// Dar ekran (iPhone, split iPad) -> tek sütun.
-/// Geniş ekran (iPad tam ekran, Mac Catalyst) -> NavigationSplitView
-/// (sol: mod kenar çubuğu, sağ: seçili oyun).
+/// Dar ekran (iPhone, split iPad) -> tek sütun NavigationStack.
+/// Geniş ekran (iPad tam ekran, Mac Catalyst) -> NavigationSplitView.
 struct AdaptiveRootView: View {
+    let language: GameLanguage
+    let onChangeLanguage: () -> Void
+
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var selectedMode: TestModePlaceholder? = .dailyClassic
 
     var body: some View {
         Group {
             if horizontalSizeClass == .compact {
-                NarrowRootView()
+                NarrowRootView(language: language, onChangeLanguage: onChangeLanguage)
             } else {
-                WideRootView(selectedMode: $selectedMode)
+                WideRootView(language: language, onChangeLanguage: onChangeLanguage)
             }
         }
     }
 }
 
-/// GEÇİCİ yer tutucu — Faz 1'de gerçek Dil Hub mod listesiyle değiştirilecek.
-enum TestModePlaceholder: String, CaseIterable, Identifiable {
-    case dailyClassic = "Günlük Klasik Mod"
-    case category = "Kategori Modu"
-    case duel = "Düello Modu"
-    case stats = "İstatistikler"
-
-    var id: String { rawValue }
-}
-
 private struct NarrowRootView: View {
+    let language: GameLanguage
+    let onChangeLanguage: () -> Void
+
     var body: some View {
-        GameTestView()
+        NavigationStack {
+            DilHubView(language: language, onBack: onChangeLanguage)
+                .navigationDestination(for: DilHubMode.self) { mode in
+                    if mode == .dailyClassic {
+                        GameTestView(language: language)
+                    } else {
+                        ContentUnavailableView(mode.rawValue, systemImage: mode.iconName)
+                    }
+                }
+        }
     }
 }
 
 private struct WideRootView: View {
-    @Binding var selectedMode: TestModePlaceholder?
+    let language: GameLanguage
+    let onChangeLanguage: () -> Void
+
+    @State private var selectedMode: DilHubMode? = .dailyClassic
+    @State private var showDailyGame = false
 
     var body: some View {
         NavigationSplitView {
-            List(TestModePlaceholder.allCases, selection: $selectedMode) { mode in
-                Text(mode.rawValue).tag(mode)
+            List(DilHubMode.allCases, selection: $selectedMode) { mode in
+                HStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(mode.gradient)
+                            .frame(width: 30, height: 30)
+                        Image(systemName: mode.iconName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                    Text(mode.rawValue)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                }
+                .tag(mode)
             }
+            .listStyle(.sidebar)
             .navigationTitle("Dilbaz")
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Button("Dil Değiştir", action: onChangeLanguage)
+                }
+            }
         } detail: {
-            // Faz 0'da sadece "Günlük Klasik Mod" GameTestView'e bağlı;
-            // diğer modlar Faz 1'de gerçek ekranlarla değiştirilecek.
-            if selectedMode == .dailyClassic {
-                GameTestView()
-            } else {
-                ContentUnavailableView(
-                    selectedMode?.rawValue ?? "Bir mod seç",
-                    systemImage: "hourglass"
-                )
+            switch selectedMode {
+            case .dailyClassic:
+                if showDailyGame {
+                    GameTestView(language: language)
+                } else {
+                    DailyHeroCardView { showDailyGame = true }
+                }
+            case .some(let mode):
+                ContentUnavailableView(mode.rawValue, systemImage: mode.iconName)
+            case .none:
+                ContentUnavailableView("Bir mod seç", systemImage: "hand.tap")
             }
         }
+        .onChange(of: selectedMode) { _, _ in showDailyGame = false }
     }
-}
-
-#Preview("Dar Ekran") {
-    NarrowRootView()
-}
-
-#Preview("Geniş Ekran") {
-    WideRootView(selectedMode: .constant(.dailyClassic))
 }

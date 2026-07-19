@@ -3,11 +3,13 @@ import SwiftUI
 struct GameTestView: View {
     @State private var session: GameSession
     @State private var wordGuessInput = ""
+    private let language: GameLanguage
 
-    init() {
+    init(language: GameLanguage = .tr) {
+        self.language = language
         let db = try! WordDatabaseLoader.load()
-        let puzzle = db.dailyPuzzle(language: .tr, date: Date())
-        _session = State(initialValue: GameSession(puzzle: puzzle, language: .tr))
+        let puzzle = db.dailyPuzzle(language: language, date: Date())
+        _session = State(initialValue: GameSession(puzzle: puzzle, language: language))
     }
 
     var body: some View {

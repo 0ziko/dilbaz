@@ -4,8 +4,8 @@ import SwiftUI
 struct DilbazApp: App {
     var body: some Scene {
         WindowGroup {
-            // GEÇİCİ: adaptif yerleşim iskeletini test etmek için. Gerçek Dil Hub navigasyonu ayrı bir promptta gelecek.
-            AdaptiveRootView()
+            // Gerçek uygulama akışı: Ana Menü -> Dil Hub -> Mod. GameTestView artık AppRootView üzerinden Günlük Klasik Mod'a bağlı.
+            AppRootView()
         }
     }
 }
