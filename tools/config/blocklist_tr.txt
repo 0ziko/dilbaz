@@ -1,0 +1,2 @@
+# Manuel TR kelime blocklist — script çıktısı gözden geçirildikçe genişletilecek.
+# Bir satır = bir kelime (küçük harf).

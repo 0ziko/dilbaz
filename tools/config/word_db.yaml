@@ -1,0 +1,36 @@
+# Dilbaz kelime veritabanı pipeline konfigürasyonu
+
+paths:
+  raw_dir: data/raw
+  cache_dir: data/cache
+  output_dir: data/output
+
+sources:
+  tdk_autocomplete: https://sozluk.gov.tr/autocomplete.json
+  tdk_gts: https://sozluk.gov.tr/gts?ara={query}
+  tdk_atasozu: https://sozluk.gov.tr/atasozu?ara={query}
+  tr_frequency: https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/tr/tr_50k.txt
+  en_frequency: https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt
+
+filters:
+  tr:
+    min_length: 4
+    max_frequency_rank: 30000
+    min_frequency_rank: 1
+  en:
+    min_length: 4
+    max_frequency_rank: 50000
+    min_frequency_rank: 1
+  phrases:
+    min_letter_count: 8
+    max_letter_count: 60
+
+enrich:
+  request_delay_seconds: 0.35
+  user_agent: "DilbazWordDB/1.0 (+https://github.com/0ziko/dilbaz)"
+
+tdk:
+  offensive_tags:
+    - kaba
+
+alphabet_scan: "abcçdefgğhıijklmnoöpqrsştuüvyz"
