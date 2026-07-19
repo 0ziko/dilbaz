@@ -21,7 +21,6 @@ struct AdaptiveRootView: View {
 }
 
 private struct NarrowRootView: View {
-    @Environment(\.dismiss) private var dismiss
     let language: GameLanguage
     let onChangeLanguage: () -> Void
 
@@ -30,7 +29,7 @@ private struct NarrowRootView: View {
             DilHubView(language: language, onBack: onChangeLanguage)
                 .navigationDestination(for: DilHubMode.self) { mode in
                     if mode == .dailyClassic {
-                        DailyClassicGameView(language: language) { dismiss() }
+                        DailyClassicGameView(language: language) { }
                     } else {
                         ContentUnavailableView(mode.rawValue, systemImage: mode.iconName)
                     }

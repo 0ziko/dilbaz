@@ -24,14 +24,15 @@ struct KeyView: View {
         switch state {
         case .normal: return Color(.secondarySystemFill)
         case .correct: return .green
-        case .incorrect: return Color(.systemGray3)
+        case .incorrect: return DilbazColor.wrongKeyBackground
         }
     }
 
     private var foregroundColor: Color {
         switch state {
         case .normal: return .primary
-        case .correct, .incorrect: return .white
+        case .correct: return .white
+        case .incorrect: return DilbazColor.wrongKeyText
         }
     }
 }

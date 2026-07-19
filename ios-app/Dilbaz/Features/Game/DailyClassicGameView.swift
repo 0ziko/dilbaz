@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DailyClassicGameView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var session: GameSession
     private let language: GameLanguage
     let onBack: () -> Void
@@ -36,7 +37,7 @@ struct DailyClassicGameView: View {
                 subtitle: "\(session.puzzle.letterCount) harf · \(difficultyTier.rawValue)",
                 badgeText: session.status == .lost ? "💔 Bozuldu" : "🔥 12", // GEÇİCİ: gerçek streak verisi ayrı adımda bağlanacak
                 gradient: session.status == .lost ? DilbazGradient.muted : DilbazGradient.blue,
-                onBack: onBack
+                onBack: handleBack
             )
             ScrollView {
                 VStack(spacing: 14) {
@@ -135,5 +136,10 @@ struct DailyClassicGameView: View {
         if session.hintUsed { return .used }
         if session.isHintAvailable { return .active }
         return .locked(remainingWrongGuesses: max(0, 3 - session.wrongLetterGuessCount))
+    }
+
+    private func handleBack() {
+        onBack()
+        dismiss()
     }
 }

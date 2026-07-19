@@ -28,6 +28,8 @@ enum DilbazColor {
     static let textMuted = Color(hex: 0x8B87A3)
     static let gray1 = Color(hex: 0xA6A9B8)
     static let gray2 = Color(hex: 0x7B7E90)
+    static let wrongKeyBackground = Color(hex: 0xF0B8B8)
+    static let wrongKeyText = Color(hex: 0x9E3D3D)
 }
 
 /// Anlamsal renk ataması: Günlük Klasik = mavi (bayrak taşıyan mod),
