@@ -24,11 +24,11 @@ targets:
         script: |
           set -e
           SRC="${SRCROOT}/../tools/data/output/word_db.json"
-          DEST_DIR="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+          DEST_DIR="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
           mkdir -p "${DEST_DIR}"
           cp -f "${SRC}" "${DEST_DIR}/word_db.json"
         outputFiles:
-          - "${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/word_db.json"
+          - "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/word_db.json"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dilbaz.app
@@ -66,11 +66,11 @@ targets:
         script: |
           set -e
           SRC="${SRCROOT}/../tools/data/output/word_db.json"
-          DEST_DIR="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+          DEST_DIR="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
           mkdir -p "${DEST_DIR}"
           cp -f "${SRC}" "${DEST_DIR}/word_db.json"
         outputFiles:
-          - "${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/word_db.json"
+          - "${TARGET_BUILD_DIR}/${WRAPPER_NAME}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/word_db.json"
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
