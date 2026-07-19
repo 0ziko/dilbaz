@@ -5,6 +5,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
+from word_db.categories import EL_ALETLERI, MUTFAK_GERECLERI, RENKLER
 from word_db.config import WordDbConfig
 from word_db.filters import (
     build_en_words,
@@ -15,6 +16,224 @@ from word_db.filters import (
 from word_db.http_utils import append_json_list, fetch_json, load_blocklist, load_json, save_json
 from word_db.models import BuildStats
 from word_db.sources import fetch_atasozu
+from word_db.turkish import turkish_lower
+
+
+def discover_all_tags(config: WordDbConfig) -> Path:
+    """Tüm gts önbelleğindeki ozellik etiketlerini tarar."""
+    tag_counts: dict[str, int] = {}
+    gts_dir = config.cache_dir / "gts"
+    for path in gts_dir.glob("*.json"):
+        try:
+            data = load_json(path)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, list) or not data:
+            continue
+        entry = data[0]
+        if isinstance(entry, dict):
+            _collect_observed_tags(entry, tag_counts)
+
+    observed_path = config.cache_dir / "observed_all_tags.json"
+    ranked = sorted(tag_counts.items(), key=lambda item: (-item[1], item[0]))
+    payload = [{"tag": tag, "count": count} for tag, count in ranked]
+    save_json(observed_path, payload)
+    return observed_path
+
+
+def _prop_matches_category_tags(prop: dict, category_tags: list[str]) -> bool:
+    short = str(prop.get("kisa_adi", "")).strip()
+    full = str(prop.get("tam_adi", "")).strip()
+    short_lower = short.lower()
+    full_lower = full.lower()
+    composite = f"{short}|{full}" if full else short
+    composite_lower = composite.lower()
+
+    for tag in category_tags:
+        tag_lower = tag.lower()
+        if tag_lower == composite_lower:
+            return True
+        if tag_lower in short_lower or tag_lower in full_lower:
+            return True
+        if "|" in tag:
+            parts = tag.split("|", 1)
+            if parts[0].strip().lower() == short_lower:
+                return True
+            if len(parts) > 1 and parts[1].strip().lower() == full_lower:
+                return True
+    return False
+
+
+def _word_matches_gts_tags(word: str, config: WordDbConfig, category_tags: list[str]) -> bool:
+    if not category_tags:
+        return False
+    cache_path = _gts_cache_path(config, word)
+    if not cache_path.exists():
+        return False
+    try:
+        data = load_json(cache_path)
+    except (OSError, ValueError):
+        return False
+    if not isinstance(data, list) or not data:
+        return False
+    entry = data[0]
+    if not isinstance(entry, dict):
+        return False
+    for meaning in entry.get("anlamlarListe", []) or []:
+        for prop in meaning.get("ozelliklerListe", []) or []:
+            if _prop_matches_category_tags(prop, category_tags):
+                return True
+    return False
+
+
+def _match_fixed_list(
+    fixed_words: list[str],
+    pool_by_text: dict[str, str],
+) -> tuple[list[str], list[str], list[str]]:
+    """Sabit listeden havuzda bulunan id'leri, eşleşen kelimeleri ve eksikleri döndürür."""
+    matched_ids: list[str] = []
+    matched_words: list[str] = []
+    missing: list[str] = []
+    for word in fixed_words:
+        key = turkish_lower(word)
+        entry_id = pool_by_text.get(key)
+        if entry_id:
+            matched_ids.append(entry_id)
+            matched_words.append(word)
+        else:
+            missing.append(word)
+    return matched_ids, matched_words, missing
+
+
+def build_categories(config: WordDbConfig) -> Path:
+    config.ensure_dirs()
+    output_path = config.output_dir / "word_db.json"
+    if not output_path.exists():
+        raise FileNotFoundError("word_db.json yok. Önce pipeline'ı çalıştırın.")
+
+    discover_all_tags(config)
+
+    db = load_json(output_path)
+    if not isinstance(db, dict):
+        raise RuntimeError("word_db.json geçersiz")
+
+    tr_words = db.get("tr", {}).get("words", [])
+    if not isinstance(tr_words, list):
+        raise RuntimeError("word_db.json TR kelime listesi geçersiz")
+
+    pool_by_text: dict[str, str] = {}
+    for item in tr_words:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text", ""))
+        entry_id = str(item.get("id", ""))
+        if text and entry_id:
+            pool_by_text[turkish_lower(text)] = entry_id
+
+    category_config = config.categories or {}
+    hayvan_tags = category_config.get("hayvan_tags", [])
+    bitki_tags = category_config.get("bitki_tags", [])
+
+    hayvanlar: list[str] = []
+    bitkiler: list[str] = []
+    for item in tr_words:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("text", ""))
+        entry_id = str(item.get("id", ""))
+        if not word or not entry_id:
+            continue
+        if _word_matches_gts_tags(word, config, hayvan_tags):
+            hayvanlar.append(entry_id)
+        if _word_matches_gts_tags(word, config, bitki_tags):
+            bitkiler.append(entry_id)
+
+    mutfak_ids, mutfak_matched, mutfak_missing = _match_fixed_list(MUTFAK_GERECLERI, pool_by_text)
+    el_ids, el_matched, el_missing = _match_fixed_list(EL_ALETLERI, pool_by_text)
+    renk_ids, renk_matched, renk_missing = _match_fixed_list(RENKLER, pool_by_text)
+
+    db["categories"] = {
+        "hayvanlar": hayvanlar,
+        "bitkiler": bitkiler,
+        "mutfak_gerecleri": mutfak_ids,
+        "el_aletleri": el_ids,
+        "renkler": renk_ids,
+    }
+    save_json(output_path, db)
+
+    _print_category_summary(
+        hayvanlar=len(hayvanlar),
+        bitkiler=len(bitkiler),
+        mutfak_count=len(mutfak_ids),
+        mutfak_list_size=len(MUTFAK_GERECLERI),
+        mutfak_matched=len(mutfak_matched),
+        mutfak_missing=mutfak_missing,
+        el_count=len(el_ids),
+        el_list_size=len(EL_ALETLERI),
+        el_matched=len(el_matched),
+        el_missing=el_missing,
+        renk_count=len(renk_ids),
+        renk_list_size=len(RENKLER),
+        renk_matched=len(renk_matched),
+        renk_missing=renk_missing,
+    )
+    return output_path
+
+
+def _print_category_summary(
+    *,
+    hayvanlar: int,
+    bitkiler: int,
+    mutfak_count: int,
+    mutfak_list_size: int,
+    mutfak_matched: int,
+    mutfak_missing: list[str],
+    el_count: int,
+    el_list_size: int,
+    el_matched: int,
+    el_missing: list[str],
+    renk_count: int,
+    renk_list_size: int,
+    renk_matched: int,
+    renk_missing: list[str],
+) -> None:
+    print("\n=== Kategori özeti ===")
+    print(f"  Hayvanlar         : {hayvanlar:,}")
+    print(f"  Bitkiler          : {bitkiler:,}")
+    print(
+        f"  Mutfak gereçleri  : {mutfak_count:,} "
+        f"(sabit listeden {mutfak_matched}/{mutfak_list_size} eşleşti, "
+        f"{len(mutfak_missing)} eksik — logland)"
+    )
+    print(
+        f"  El aletleri       : {el_count:,} "
+        f"(sabit listeden {el_matched}/{el_list_size} eşleşti, "
+        f"{len(el_missing)} eksik — logland)"
+    )
+    print(
+        f"  Renkler           : {renk_count:,} "
+        f"(sabit listeden {renk_matched}/{renk_list_size} eşleşti, "
+        f"{len(renk_missing)} eksik — logland)"
+    )
+
+    if mutfak_missing:
+        print(f"  Eksik (mutfak)    : {', '.join(mutfak_missing)}")
+    if el_missing:
+        print(f"  Eksik (el aletleri): {', '.join(el_missing)}")
+    if renk_missing:
+        print(f"  Eksik (renkler)   : {', '.join(renk_missing)}")
+
+    warnings = [
+        ("Hayvanlar", hayvanlar),
+        ("Bitkiler", bitkiler),
+        ("Mutfak gereçleri", mutfak_count),
+        ("El aletleri", el_count),
+        ("Renkler", renk_count),
+    ]
+    for name, count in warnings:
+        if count < 15:
+            print(f"UYARI: {name} kategorisinde sadece {count} kelime var, Kategori Modu için az olabilir")
+
 
 
 def _require_raw(config: WordDbConfig, filename: str) -> Path:

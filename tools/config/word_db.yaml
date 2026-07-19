@@ -33,4 +33,10 @@ tdk:
   offensive_tags:
     - kaba
 
+categories:
+  hayvan_tags:
+    - "hay. b.|hayvan bilimi"
+  bitki_tags:
+    - "bit. b.|bitki bilimi"
+
 alphabet_scan: "abcçdefgğhıijklmnoöpqrsştuüvyz"

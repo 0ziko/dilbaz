@@ -19,6 +19,7 @@ class WordDbConfig:
     filters: dict[str, Any]
     enrich: dict[str, Any]
     tdk: dict[str, Any]
+    categories: dict[str, Any]
     alphabet_scan: str
     blocklist_tr_path: Path = field(default_factory=lambda: TOOLS_DIR / "config" / "blocklist_tr.txt")
     blocklist_en_path: Path = field(default_factory=lambda: TOOLS_DIR / "config" / "blocklist_en.txt")
@@ -39,6 +40,7 @@ class WordDbConfig:
             filters=data["filters"],
             enrich=data["enrich"],
             tdk=data["tdk"],
+            categories=data.get("categories", {}),
             alphabet_scan=data["alphabet_scan"],
         )
 

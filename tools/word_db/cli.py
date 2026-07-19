@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from word_db.config import WordDbConfig
-from word_db.pipeline import build_all, enrich_tr
+from word_db.pipeline import build_all, build_categories, enrich_tr
 from word_db.sources import fetch_all
 
 
@@ -34,7 +34,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Test için işlenecek maksimum kelime sayısı",
     )
 
-    sub.add_parser("all", help="fetch + build + enrich-tr sırasıyla çalıştır")
+    sub.add_parser("categories", help="TR kelime kategori listelerini üret")
+    sub.add_parser("all", help="fetch + build + enrich-tr + categories sırasıyla çalıştır")
     return parser
 
 
@@ -49,10 +50,13 @@ def main(argv: list[str] | None = None) -> int:
         build_all(config)
     elif args.command == "enrich-tr":
         enrich_tr(config, limit=args.limit)
+    elif args.command == "categories":
+        build_categories(config)
     elif args.command == "all":
         fetch_all(config)
         build_all(config)
         enrich_tr(config)
+        build_categories(config)
     else:
         parser.error(f"Bilinmeyen komut: {args.command}")
         return 2
