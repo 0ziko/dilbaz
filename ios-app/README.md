@@ -8,4 +8,4 @@
 
 ## Kelime veritabanı
 
-`Dilbaz/Resources/word_db.json`, `tools/data/output/word_db.json` dosyasına sembolik linktir. Kaynak veri yalnızca `tools/` pipeline'ında güncellenir; uygulama bu link üzerinden okur.
+`word_db.json` tek kaynağı `tools/data/output/word_db.json` dosyasıdır. Derleme sırasında **Copy word_db.json** build script'i bu dosyayı uygulama ve test bundle'ına kopyalar.
