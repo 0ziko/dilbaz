@@ -4,7 +4,8 @@ import SwiftUI
 struct DilbazApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            // GEÇİCİ: oyun mekaniğini test etmek için. Gerçek navigasyon (Ana Menü → Dil Hub) ayrı bir promptta gelecek.
+            GameTestView()
         }
     }
 }
