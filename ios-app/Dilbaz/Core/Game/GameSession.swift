@@ -36,6 +36,9 @@ final class GameSession {
     private(set) var revealedLetterSet: Set<Character> = []
     private(set) var status: GameStatus = .playing
     private(set) var lastWordGuessFeedback: WordGuessFeedback?
+    private(set) var wrongLetterGuessCount: Int = 0
+    private(set) var lastGuessedWord: String?
+    private(set) var hintUsed: Bool = false
 
     private let normalizedFlatAnswer: String
     let segments: [String]
@@ -73,6 +76,7 @@ final class GameSession {
             return .correct
         } else {
             keyStates[normalizedChar] = .incorrect
+            wrongLetterGuessCount += 1
             spendLives(LivesConfig.wrongLetterCost)
             return .incorrect
         }
@@ -82,6 +86,7 @@ final class GameSession {
     func guessFullWord(_ guess: String) -> WordGuessFeedback {
         guard status == .playing else { return .incorrect(positions: []) }
         let normalizedGuess = TurkishText.normalizedForMatching(guess, language: language)
+        lastGuessedWord = normalizedGuess
 
         if normalizedGuess == normalizedFlatAnswer {
             revealedLetterSet = Set(normalizedFlatAnswer)
@@ -132,5 +137,18 @@ final class GameSession {
             }
         }
         return result
+    }
+
+    /// Brief: "3. yanlıştan sonra kategorik ipucu (harf değil), ücretsiz."
+    /// "Yanlış" burada yanlış HARF tahminini ifade ediyor (kelime tahmini değil).
+    var isHintAvailable: Bool {
+        status == .playing && wrongLetterGuessCount >= 3 && !hintUsed
+    }
+
+    @discardableResult
+    func useHint() -> String? {
+        guard isHintAvailable else { return nil }
+        hintUsed = true
+        return puzzle.hintText
     }
 }

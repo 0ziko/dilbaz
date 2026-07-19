@@ -20,6 +20,8 @@ struct HeroHeaderView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 21, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                     .foregroundStyle(.white)
                 Text(subtitle)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))

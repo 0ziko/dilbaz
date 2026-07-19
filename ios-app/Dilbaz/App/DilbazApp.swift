@@ -4,7 +4,7 @@ import SwiftUI
 struct DilbazApp: App {
     var body: some Scene {
         WindowGroup {
-            // Gerçek uygulama akışı: Ana Menü -> Dil Hub -> Mod. GameTestView artık AppRootView üzerinden Günlük Klasik Mod'a bağlı.
+            // Gerçek uygulama akışı: Ana Menü -> Dil Hub -> Mod. DailyClassicGameView AppRootView üzerinden Günlük Klasik Mod'a bağlı.
             AppRootView()
         }
     }

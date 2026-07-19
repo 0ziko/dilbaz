@@ -82,4 +82,42 @@ final class GameSessionTests: XCTestCase {
         XCTAssertEqual(LivesConfig.lives(forLetterCount: 50), 18)
         XCTAssertEqual(LivesConfig.lives(forLetterCount: 1000), 18)
     }
+
+    func testWrongLetterGuessCountIncrementsOnlyOnWrongLetters() {
+        let puzzle = makeTestPuzzle(text: "kedi", letters: "KEDİ", letterCount: 4)
+        let session = GameSession(puzzle: puzzle, language: .tr)
+        _ = session.guessLetter("k") // doğru
+        _ = session.guessLetter("z") // yanlış
+        _ = session.guessLetter("x") // yanlış
+        XCTAssertEqual(session.wrongLetterGuessCount, 2)
+    }
+
+    func testHintBecomesAvailableAfterThreeWrongLetterGuesses() {
+        let puzzle = makeTestPuzzle(text: "kedi", letters: "KEDİ", letterCount: 4)
+        let session = GameSession(puzzle: puzzle, language: .tr)
+        XCTAssertFalse(session.isHintAvailable)
+        _ = session.guessLetter("z")
+        _ = session.guessLetter("x")
+        XCTAssertFalse(session.isHintAvailable)
+        _ = session.guessLetter("q")
+        XCTAssertTrue(session.isHintAvailable)
+    }
+
+    func testUseHintMarksHintAsUsedAndReturnsNilAfterward() {
+        let puzzle = makeTestPuzzle(text: "kedi", letters: "KEDİ", letterCount: 4)
+        let session = GameSession(puzzle: puzzle, language: .tr)
+        _ = session.guessLetter("z")
+        _ = session.guessLetter("x")
+        _ = session.guessLetter("q")
+        XCTAssertNotNil(session.useHint())
+        XCTAssertTrue(session.hintUsed)
+        XCTAssertNil(session.useHint())
+    }
+
+    func testLastGuessedWordIsStoredAfterFullWordGuess() {
+        let puzzle = makeTestPuzzle(text: "kelime", letters: "KELİME", letterCount: 6)
+        let session = GameSession(puzzle: puzzle, language: .tr)
+        _ = session.guessFullWord("yanlis")
+        XCTAssertNotNil(session.lastGuessedWord)
+    }
 }

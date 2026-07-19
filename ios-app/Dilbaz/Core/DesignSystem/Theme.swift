@@ -26,6 +26,8 @@ enum DilbazColor {
     static let background = Color(hex: 0xF6F5FB)
     static let textDark = Color(hex: 0x2E2B45)
     static let textMuted = Color(hex: 0x8B87A3)
+    static let gray1 = Color(hex: 0xA6A9B8)
+    static let gray2 = Color(hex: 0x7B7E90)
 }
 
 /// Anlamsal renk ataması: Günlük Klasik = mavi (bayrak taşıyan mod),
@@ -37,4 +39,5 @@ enum DilbazGradient {
     static let gold = LinearGradient(colors: [DilbazColor.gold1, DilbazColor.gold2], startPoint: .topLeading, endPoint: .bottomTrailing)
     static let orange = LinearGradient(colors: [DilbazColor.orange1, DilbazColor.orange2], startPoint: .topLeading, endPoint: .bottomTrailing)
     static let pink = LinearGradient(colors: [DilbazColor.pink1, DilbazColor.pink2], startPoint: .topLeading, endPoint: .bottomTrailing)
+    static let muted = LinearGradient(colors: [DilbazColor.gray1, DilbazColor.gray2], startPoint: .topLeading, endPoint: .bottomTrailing)
 }

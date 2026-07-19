@@ -11,4 +11,16 @@ struct PuzzleEntry: Codable, Identifiable, Hashable, Sendable {
     let frequencyCount: Int?
     let definition: String?
     let origin: String?
+
+    var hintText: String {
+        switch type {
+        case "atasozu", "deyim":
+            return "Bu bir atasözü ya da deyim."
+        default:
+            if text.contains(" ") {
+                return "Bu bir atasözü ya da deyim."
+            }
+            return "Bu tek bir kelime."
+        }
+    }
 }
