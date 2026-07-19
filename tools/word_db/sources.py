@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 import urllib.parse
 from pathlib import Path
 
@@ -71,10 +70,6 @@ def fetch_atasozu(config: WordDbConfig) -> Path:
 
     single_queries = list(alphabet)
     _scan_atasozu_queries(single_queries, config, seen, user_agent, label_prefix="Harf: ")
-
-    double_queries = ["".join(pair) for pair in itertools.product(alphabet, repeat=2)]
-    print(f"  İki harfli tarama başlıyor ({len(double_queries)} sorgu)…")
-    _scan_atasozu_queries(double_queries, config, seen, user_agent, label_prefix="İkili: ")
 
     payload = {
         "source": config.sources["tdk_atasozu"],
