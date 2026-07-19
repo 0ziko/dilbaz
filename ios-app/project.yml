@@ -51,6 +51,9 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: DilbazTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
     dependencies:
       - target: Dilbaz
 schemes:
