@@ -33,6 +33,7 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: true
     info:
+      path: Dilbaz/Info.plist
       properties:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
