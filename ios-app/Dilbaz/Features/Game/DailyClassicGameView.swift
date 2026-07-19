@@ -8,8 +8,9 @@ struct DailyClassicGameView: View {
     @State private var isGuessInputVisible = false
     @State private var guessText = ""
     @State private var revealedHint: String?
+    @State private var guessErrorMessage: String?
 
-    init(language: GameLanguage = .tr, onBack: @escaping () -> Void = {}) {
+    init(language: GameLanguage = .tr, onBack: @escaping () -> Void) {
         self.language = language
         self.onBack = onBack
         let db = try! WordDatabaseLoader.load()
@@ -44,7 +45,10 @@ struct DailyClassicGameView: View {
                         .tracking(1.0)
                         .foregroundStyle(DilbazColor.textMuted)
 
-                    LetterGridView(segments: session.displaySegments)
+                    LetterGridView(
+                        segments: session.displaySegments,
+                        fillGradient: session.status == .lost ? DilbazGradient.muted : DilbazGradient.blue
+                    )
                         .padding(.horizontal, 16)
 
                     if session.status == .playing || session.status == .lost || session.status == .won {
@@ -58,9 +62,20 @@ struct DailyClassicGameView: View {
 
                         if isGuessInputVisible {
                             GuessInputRowView(text: $guessText) {
+                                let strippedGuess = guessText.replacingOccurrences(of: " ", with: "")
+                                guard strippedGuess.count == session.puzzle.letterCount else {
+                                    guessErrorMessage = "Tam olarak \(session.puzzle.letterCount) harf yazmalısın (boşluksuz)."
+                                    return
+                                }
+                                guessErrorMessage = nil
                                 session.guessFullWord(guessText)
                                 guessText = ""
                                 isGuessInputVisible = false
+                            }
+                            if let guessErrorMessage {
+                                Text(guessErrorMessage)
+                                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(DilbazColor.pink2)
                             }
                         } else {
                             Button {

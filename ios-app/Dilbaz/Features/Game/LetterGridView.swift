@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LetterGridView: View {
     let segments: [[Character?]]
+    var fillGradient: LinearGradient = DilbazGradient.blue
 
     var body: some View {
         VStack(spacing: AdaptiveSizingConstants.boxSpacing) {
@@ -47,7 +48,7 @@ struct LetterGridView: View {
             ForEach(Array(segment.enumerated()), id: \.offset) { _, letter in
                 ZStack {
                     RoundedRectangle(cornerRadius: boxSize * 0.24, style: .continuous)
-                        .fill(letter != nil ? AnyShapeStyle(DilbazGradient.blue) : AnyShapeStyle(Color.white))
+                        .fill(letter != nil ? AnyShapeStyle(fillGradient) : AnyShapeStyle(Color.white))
                     if letter == nil {
                         RoundedRectangle(cornerRadius: boxSize * 0.24, style: .continuous)
                             .stroke(Color(hex: 0xE1DEF0), lineWidth: 1.3)

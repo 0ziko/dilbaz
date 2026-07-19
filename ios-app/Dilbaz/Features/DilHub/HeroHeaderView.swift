@@ -17,6 +17,7 @@ struct HeroHeaderView: View {
                     .background(Color.white.opacity(0.22))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
+            .contentShape(Rectangle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 21, weight: .bold, design: .rounded))
