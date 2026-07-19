@@ -29,6 +29,14 @@ def letters_only(text: str) -> str:
     return "".join(ch for ch in text if ch.isalpha())
 
 
+def game_letters(text: str, language: str) -> str:
+    """Oyun harf eşleştirmesi için normalize edilmiş harf dizisi (büyük harf, sadece harfler)."""
+    raw = letters_only(text)
+    if language == "tr":
+        return turkish_upper(raw)
+    return raw.upper()
+
+
 def letter_count(text: str) -> int:
     return len(letters_only(text))
 

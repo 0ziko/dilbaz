@@ -5,12 +5,12 @@ from pathlib import Path
 from word_db.http_utils import load_json
 from word_db.models import BuildStats, PuzzleEntry, compute_difficulty
 from word_db.turkish import (
+    game_letters,
     is_autocomplete_word_candidate,
     is_english_word,
     is_turkish_phrase,
     is_turkish_word,
     letter_count,
-    letters_only,
     normalize_phrase_text,
     turkish_lower,
 )
@@ -95,7 +95,7 @@ def build_tr_words(
             PuzzleEntry(
                 id="",
                 text=normalized,
-                letters=letters_only(normalized),
+                letters=game_letters(normalized, "tr"),
                 letter_count=len(normalized),
                 type="word",
                 difficulty=0.0,
@@ -147,7 +147,7 @@ def build_tr_phrases(
         entry = PuzzleEntry(
             id="",
             text=text,
-            letters=letters_only(text),
+            letters=game_letters(text, "tr"),
             letter_count=count,
             type="atasozu" if tur == "Atasözü" else "deyim",
             difficulty=0.0,
@@ -199,7 +199,7 @@ def build_en_words(
                 PuzzleEntry(
                     id="",
                     text=normalized,
-                    letters=normalized,
+                    letters=game_letters(normalized, "en"),
                     letter_count=len(normalized),
                     type="word",
                     difficulty=0.0,
