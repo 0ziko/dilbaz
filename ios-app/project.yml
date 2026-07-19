@@ -45,3 +45,19 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+  DilbazTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: DilbazTests
+    dependencies:
+      - target: Dilbaz
+schemes:
+  Dilbaz:
+    build:
+      targets:
+        Dilbaz: all
+    test:
+      targets:
+        - DilbazTests
