@@ -51,6 +51,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: DilbazTests
+    resources:
+      - path: Dilbaz/Resources/word_db.json
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
