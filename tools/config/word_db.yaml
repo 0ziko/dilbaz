@@ -9,8 +9,8 @@ sources:
   tdk_autocomplete: https://sozluk.gov.tr/autocomplete.json
   tdk_gts: https://sozluk.gov.tr/gts?ara={query}
   tdk_atasozu: https://sozluk.gov.tr/atasozu?ara={query}
-  tr_frequency: https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/tr/tr_50k.txt
-  en_frequency: https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt
+  tr_frequency: https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2016/tr/tr_50k.txt
+  en_frequency: https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2016/en/en_50k.txt
 
 filters:
   tr:

@@ -4,7 +4,7 @@ import re
 import unicodedata
 
 # Türkçe Q klavyede kullanılabilen harfler (oyun girişi için)
-TR_LETTERS = set("abcçdefgğhıijklmnoöpqrsştuüvwxyz")
+TR_LETTERS = set("abcçdefgğhıijklmnoöprsştuüvyz")
 EN_LETTERS = set("abcdefghijklmnopqrstuvwxyz")
 
 # Autocomplete'teki dilbilgisi kalıpları — tekil kelime havuzuna alınmaz

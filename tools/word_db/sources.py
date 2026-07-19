@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import urllib.parse
 from pathlib import Path
 
@@ -25,6 +26,37 @@ def fetch_all(config: WordDbConfig) -> None:
     fetch_atasozu(config)
 
 
+def _add_atasozu_batch(batch: object, seen: dict[int, dict]) -> int:
+    if isinstance(batch, dict) and batch.get("error"):
+        return 0
+    if not isinstance(batch, list):
+        raise RuntimeError("Beklenmeyen atasozu yanıtı")
+    added = 0
+    for item in batch:
+        soz_id = item.get("soz_id")
+        if soz_id is not None and soz_id not in seen:
+            seen[int(soz_id)] = item
+            added += 1
+    return added
+
+
+def _scan_atasozu_queries(
+    queries: list[str],
+    config: WordDbConfig,
+    seen: dict[int, dict],
+    user_agent: str,
+    label_prefix: str,
+) -> None:
+    url_template = config.sources["tdk_atasozu"]
+    for query in queries:
+        encoded = urllib.parse.quote(query)
+        url = url_template.format(query=encoded)
+        print(f"  {label_prefix}{query}", end="", flush=True)
+        batch = fetch_json(url, user_agent)
+        added = _add_atasozu_batch(batch, seen)
+        print(f" (+{added}, toplam {len(seen)})")
+
+
 def fetch_atasozu(config: WordDbConfig) -> Path:
     user_agent = config.enrich["user_agent"]
     destination = config.raw_dir / "tdk_atasozu.json"
@@ -34,24 +66,15 @@ def fetch_atasozu(config: WordDbConfig) -> Path:
             print(f"  Önbellek kullanılıyor: {len(cached['entries'])} öbek")
             return destination
 
+    alphabet = config.alphabet_scan
     seen: dict[int, dict] = {}
-    for letter in config.alphabet_scan:
-        query = urllib.parse.quote(letter)
-        url = config.sources["tdk_atasozu"].format(query=query)
-        print(f"  Harf: {letter}", end="", flush=True)
-        batch = fetch_json(url, user_agent)
-        if isinstance(batch, dict) and batch.get("error"):
-            print(f" (0, toplam {len(seen)})")
-            continue
-        if not isinstance(batch, list):
-            raise RuntimeError(f"Beklenmeyen atasozu yanıtı: {letter}")
-        added = 0
-        for item in batch:
-            soz_id = item.get("soz_id")
-            if soz_id is not None and soz_id not in seen:
-                seen[int(soz_id)] = item
-                added += 1
-        print(f" (+{added}, toplam {len(seen)})")
+
+    single_queries = list(alphabet)
+    _scan_atasozu_queries(single_queries, config, seen, user_agent, label_prefix="Harf: ")
+
+    double_queries = ["".join(pair) for pair in itertools.product(alphabet, repeat=2)]
+    print(f"  İki harfli tarama başlıyor ({len(double_queries)} sorgu)…")
+    _scan_atasozu_queries(double_queries, config, seen, user_agent, label_prefix="İkili: ")
 
     payload = {
         "source": config.sources["tdk_atasozu"],
