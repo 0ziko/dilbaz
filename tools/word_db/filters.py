@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from word_db.http_utils import load_json
-from word_db.models import BuildStats, PuzzleEntry
+from word_db.models import BuildStats, PuzzleEntry, compute_difficulty
 from word_db.turkish import (
     is_autocomplete_word_candidate,
     is_english_word,
@@ -33,6 +33,12 @@ def load_frequency_map(path: Path) -> dict[str, tuple[int, int]]:
             if key not in result:
                 result[key] = (rank, count)
     return result
+
+
+def _assign_ids(entries: list[PuzzleEntry], lang: str, entry_type: str) -> None:
+    for index, entry in enumerate(entries, start=1):
+        entry.id = f"{lang}_{entry_type}_{index:05d}"
+        entry.difficulty = compute_difficulty(entry.letter_count)
 
 
 def build_tr_words(
@@ -87,17 +93,20 @@ def build_tr_words(
 
         entries.append(
             PuzzleEntry(
+                id="",
                 text=normalized,
                 letters=letters_only(normalized),
                 letter_count=len(normalized),
                 type="word",
+                difficulty=0.0,
                 frequency_rank=rank,
                 frequency_count=count,
             )
         )
 
-    stats.tr_words_output = len(entries)
     entries.sort(key=lambda entry: (entry.frequency_rank or 0, entry.text))
+    _assign_ids(entries, "tr", "word")
+    stats.tr_words_output = len(entries)
     return entries
 
 
@@ -136,10 +145,12 @@ def build_tr_phrases(
             continue
 
         entry = PuzzleEntry(
+            id="",
             text=text,
             letters=letters_only(text),
             letter_count=count,
             type="atasozu" if tur == "Atasözü" else "deyim",
+            difficulty=0.0,
             definition=str(item.get("anlami", "")).strip() or None,
             source_id=int(soz_id),
         )
@@ -148,10 +159,12 @@ def build_tr_phrases(
         else:
             deyim.append(entry)
 
-    stats.tr_phrases_atasozu = len(atasozu)
-    stats.tr_phrases_deyim = len(deyim)
     atasozu.sort(key=lambda entry: entry.text)
     deyim.sort(key=lambda entry: entry.text)
+    _assign_ids(atasozu, "tr", "atasozu")
+    _assign_ids(deyim, "tr", "deyim")
+    stats.tr_phrases_atasozu = len(atasozu)
+    stats.tr_phrases_deyim = len(deyim)
     return atasozu, deyim
 
 
@@ -184,14 +197,17 @@ def build_en_words(
                 count = None
             entries.append(
                 PuzzleEntry(
+                    id="",
                     text=normalized,
                     letters=normalized,
                     letter_count=len(normalized),
                     type="word",
+                    difficulty=0.0,
                     frequency_rank=rank,
                     frequency_count=count,
                 )
             )
 
+    _assign_ids(entries, "en", "word")
     stats.en_words_output = len(entries)
     return entries

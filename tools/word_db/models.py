@@ -1,15 +1,21 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Any
+
+
+def compute_difficulty(letter_count: int) -> float:
+    return round(letter_count / 5, 2)
 
 
 @dataclass
 class PuzzleEntry:
+    id: str
     text: str
     letters: str
     letter_count: int
     type: str
+    difficulty: float
     frequency_rank: int | None = None
     frequency_count: int | None = None
     definition: str | None = None
@@ -36,6 +42,7 @@ class BuildStats:
     tr_filtered_pattern: int = 0
     phrase_filtered_alphabet: int = 0
     phrase_filtered_length: int = 0
+    gts_failed: int = 0
 
     def to_dict(self) -> dict[str, int]:
         return asdict(self)
