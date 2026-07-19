@@ -4,8 +4,8 @@ import SwiftUI
 struct DilbazApp: App {
     var body: some Scene {
         WindowGroup {
-            // GEÇİCİ: oyun mekaniğini test etmek için. Gerçek navigasyon (Ana Menü → Dil Hub) ayrı bir promptta gelecek.
-            GameTestView()
+            // GEÇİCİ: adaptif yerleşim iskeletini test etmek için. Gerçek Dil Hub navigasyonu ayrı bir promptta gelecek.
+            AdaptiveRootView()
         }
     }
 }

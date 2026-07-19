@@ -16,15 +16,43 @@ struct GameTestView: View {
                 .font(.headline)
             Text("Durum: \(String(describing: session.status))")
 
-            ForEach(Array(session.displaySegments.enumerated()), id: \.offset) { _, segment in
-                HStack(spacing: 4) {
-                    ForEach(Array(segment.enumerated()), id: \.offset) { _, letter in
-                        Text(letter.map(String.init) ?? "_")
-                            .frame(width: 28, height: 28)
-                            .border(Color.gray)
+            VStack(spacing: AdaptiveSizingConstants.boxSpacing) {
+                ForEach(Array(session.displaySegments.enumerated()), id: \.offset) { _, segment in
+                    GeometryReader { geometry in
+                        let needsScroll = AdaptiveSizing.requiresHorizontalScroll(
+                            availableWidth: geometry.size.width,
+                            itemCount: segment.count,
+                            spacing: AdaptiveSizingConstants.boxSpacing,
+                            minSize: AdaptiveSizingConstants.boxMinSize
+                        )
+                        let boxSize = needsScroll
+                            ? AdaptiveSizingConstants.boxMinSize
+                            : AdaptiveSizing.itemSize(
+                                availableWidth: geometry.size.width,
+                                itemCount: segment.count,
+                                spacing: AdaptiveSizingConstants.boxSpacing,
+                                minSize: AdaptiveSizingConstants.boxMinSize,
+                                maxSize: AdaptiveSizingConstants.boxMaxSize
+                              )
+
+                        Group {
+                            if needsScroll {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    letterRow(segment: segment, boxSize: boxSize)
+                                }
+                            } else {
+                                HStack {
+                                    Spacer(minLength: 0)
+                                    letterRow(segment: segment, boxSize: boxSize)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        }
                     }
+                    .frame(height: AdaptiveSizingConstants.boxMaxSize)
                 }
             }
+            .padding(.horizontal)
 
             KeyboardView(
                 layout: .layout(for: session.language),
@@ -54,6 +82,18 @@ struct GameTestView: View {
             }
         }
         .padding(.top, 40)
+    }
+
+    @ViewBuilder
+    private func letterRow(segment: [Character?], boxSize: CGFloat) -> some View {
+        HStack(spacing: AdaptiveSizingConstants.boxSpacing) {
+            ForEach(Array(segment.enumerated()), id: \.offset) { _, letter in
+                Text(letter.map(String.init) ?? "_")
+                    .font(.system(size: boxSize * 0.5, weight: .semibold))
+                    .frame(width: boxSize, height: boxSize)
+                    .border(Color.gray)
+            }
+        }
     }
 }
 

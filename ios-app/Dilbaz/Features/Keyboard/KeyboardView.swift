@@ -6,31 +6,39 @@ struct KeyboardView: View {
     let keyStates: [Character: KeyState]
     let onKeyTap: (Character) -> Void
 
-    private let keySpacing: CGFloat = 6
     private let rowSpacing: CGFloat = 8
 
     var body: some View {
         GeometryReader { geometry in
             let maxCount = layout.maxRowKeyCount
-            let totalSpacing = keySpacing * CGFloat(maxCount - 1)
-            let keyWidth = max(24, (geometry.size.width - totalSpacing) / CGFloat(maxCount))
+            // AdaptiveSizing.itemSize ile aynı prensip (en kalabalık satır baz alınır, tüm satırlarda eşit tuş genişliği).
+            let keyWidth = AdaptiveSizing.itemSize(
+                availableWidth: geometry.size.width,
+                itemCount: maxCount,
+                spacing: AdaptiveSizingConstants.keySpacing,
+                minSize: AdaptiveSizingConstants.keyMinSize,
+                maxSize: AdaptiveSizingConstants.keyMaxSize
+            )
             let keyHeight = keyWidth * 1.3
 
             VStack(spacing: rowSpacing) {
                 ForEach(Array(layout.rows.enumerated()), id: \.offset) { _, row in
-                    HStack(spacing: keySpacing) {
-                        ForEach(row, id: \.self) { letter in
-                            KeyView(
-                                letter: letter,
-                                state: keyStates[letter] ?? .normal,
-                                width: keyWidth,
-                                height: keyHeight
-                            ) {
-                                onKeyTap(letter)
+                    HStack {
+                        Spacer(minLength: 0)
+                        HStack(spacing: AdaptiveSizingConstants.keySpacing) {
+                            ForEach(row, id: \.self) { letter in
+                                KeyView(
+                                    letter: letter,
+                                    state: keyStates[letter] ?? .normal,
+                                    width: keyWidth,
+                                    height: keyHeight
+                                ) {
+                                    onKeyTap(letter)
+                                }
                             }
                         }
+                        Spacer(minLength: 0)
                     }
-                    .frame(maxWidth: .infinity)
                 }
             }
         }
