@@ -12,8 +12,8 @@ from word_db.filters import (
     build_tr_words,
     load_frequency_map,
 )
-from word_db.http_utils import fetch_json, load_blocklist, load_json, save_json
-from word_db.models import BuildStats, PuzzleEntry
+from word_db.http_utils import append_json_list, fetch_json, load_blocklist, load_json, save_json
+from word_db.models import BuildStats
 from word_db.sources import fetch_atasozu
 
 
@@ -115,6 +115,25 @@ def _gts_cache_path(config: WordDbConfig, word: str) -> Path:
     return config.cache_dir / "gts" / f"{safe}.json"
 
 
+def _collect_observed_tags(entry: dict, tag_counts: dict[str, int]) -> None:
+    for meaning in entry.get("anlamlarListe", []) or []:
+        for prop in meaning.get("ozelliklerListe", []) or []:
+            short = str(prop.get("kisa_adi", "")).strip()
+            full = str(prop.get("tam_adi", "")).strip()
+            if not short and not full:
+                continue
+            key = f"{short}|{full}" if full else short
+            tag_counts[key] = tag_counts.get(key, 0) + 1
+
+
+def _save_observed_tags(config: WordDbConfig, tag_counts: dict[str, int]) -> Path:
+    observed_path = config.cache_dir / "observed_tags.json"
+    ranked = sorted(tag_counts.items(), key=lambda item: (-item[1], item[0]))
+    payload = [{"tag": tag, "count": count} for tag, count in ranked]
+    save_json(observed_path, payload)
+    return observed_path
+
+
 def _is_offensive_gts(entry: dict, offensive_tags: list[str]) -> bool:
     for meaning in entry.get("anlamlarListe", []) or []:
         for prop in meaning.get("ozelliklerListe", []) or []:
@@ -136,14 +155,23 @@ def _extract_definition(entry: dict) -> tuple[str | None, str | None]:
     return definition, origin
 
 
+def _save_enrich_checkpoint(db: dict, output_path: Path, stats: dict) -> None:
+    db["stats"] = stats
+    db["enriched_at"] = datetime.now(timezone.utc).isoformat()
+    save_json(output_path, db)
+
+
 def enrich_tr(config: WordDbConfig, limit: int | None = None) -> Path:
-    """Filtrelenmiş TR kelimeler için TDK gts detaylarını cache'ler; argo olanları işaretler."""
+    """Filtrelenmiş TR kelimeler için TDK gts detaylarını cache'ler; argo olanları eler."""
     config.ensure_dirs()
     output_path = config.output_dir / "word_db.json"
     if not output_path.exists():
         raise FileNotFoundError("word_db.json yok. Önce `python -m word_db build` çalıştırın.")
 
     db = load_json(output_path)
+    if not isinstance(db, dict):
+        raise RuntimeError("word_db.json geçersiz")
+
     tr_words = db.get("tr", {}).get("words", [])
     if not isinstance(tr_words, list):
         raise RuntimeError("word_db.json TR kelime listesi geçersiz")
@@ -151,39 +179,56 @@ def enrich_tr(config: WordDbConfig, limit: int | None = None) -> Path:
     user_agent = config.enrich["user_agent"]
     delay = float(config.enrich["request_delay_seconds"])
     offensive_tags = [tag.lower() for tag in config.tdk.get("offensive_tags", ["kaba"])]
+    failed_path = config.cache_dir / "failed_gts.json"
 
     enriched: list[dict] = []
     removed_offensive = 0
+    gts_failed = 0
     fetched = 0
     cached = 0
+    tag_counts: dict[str, int] = {}
+    total = len(tr_words)
 
     for index, item in enumerate(tr_words):
         if limit is not None and index >= limit:
-            enriched.append(item)
-            continue
+            enriched.extend(tr_words[index:])
+            break
 
         word = str(item.get("text", ""))
         cache_path = _gts_cache_path(config, word)
+        gts_data: object | None = None
 
-        if cache_path.exists():
-            gts_data = load_json(cache_path)
-            cached += 1
-        else:
-            query = urllib.parse.quote(word)
-            url = config.sources["tdk_gts"].format(query=query)
-            gts_data = fetch_json(url, user_agent)
-            save_json(cache_path, gts_data)
-            fetched += 1
-            time.sleep(delay)
+        try:
+            if cache_path.exists():
+                gts_data = load_json(cache_path)
+                cached += 1
+            else:
+                query = urllib.parse.quote(word)
+                url = config.sources["tdk_gts"].format(query=query)
+                gts_data = fetch_json(url, user_agent)
+                save_json(cache_path, gts_data)
+                fetched += 1
+                time.sleep(delay)
+        except RuntimeError as exc:
+            gts_failed += 1
+            append_json_list(failed_path, {"word": word, "error": str(exc)})
+            updated = dict(item)
+            updated["gts_status"] = "failed"
+            enriched.append(updated)
+            continue
 
         if not isinstance(gts_data, list) or not gts_data:
-            enriched.append(item)
+            updated = dict(item)
+            enriched.append(updated)
             continue
 
         entry = gts_data[0]
         if not isinstance(entry, dict):
-            enriched.append(item)
+            updated = dict(item)
+            enriched.append(updated)
             continue
+
+        _collect_observed_tags(entry, tag_counts)
 
         if _is_offensive_gts(entry, offensive_tags):
             removed_offensive += 1
@@ -197,24 +242,36 @@ def enrich_tr(config: WordDbConfig, limit: int | None = None) -> Path:
             updated["origin"] = origin
         enriched.append(updated)
 
-        if (index + 1) % 250 == 0:
-            print(f"  İşlenen: {index + 1}/{len(tr_words)} (cache: {cached}, yeni: {fetched})")
+        if (index + 1) % 500 == 0:
+            print(f"  İşlenen: {index + 1}/{total} (cache: {cached}, yeni: {fetched}, hata: {gts_failed})")
+            checkpoint_db = dict(db)
+            checkpoint_db.setdefault("tr", {})["words"] = enriched + tr_words[index + 1 :]
+            checkpoint_stats = dict(db.get("stats", {}))
+            if isinstance(checkpoint_stats, dict):
+                checkpoint_stats["tr_filtered_offensive"] = removed_offensive
+                checkpoint_stats["tr_words_output"] = len(enriched) + len(tr_words) - index - 1
+                checkpoint_stats["gts_fetched"] = fetched
+                checkpoint_stats["gts_cached"] = cached
+                checkpoint_stats["gts_failed"] = gts_failed
+            _save_enrich_checkpoint(checkpoint_db, output_path, checkpoint_stats)
 
     db.setdefault("tr", {})["words"] = enriched
-    stats = db.setdefault("stats", {})
-    if isinstance(stats, dict):
-        stats["tr_filtered_offensive"] = removed_offensive
-        stats["tr_words_output"] = len(enriched)
-        stats["gts_fetched"] = fetched
-        stats["gts_cached"] = cached
+    stats = dict(db.get("stats", {})) if isinstance(db.get("stats"), dict) else {}
+    stats["tr_filtered_offensive"] = removed_offensive
+    stats["tr_words_output"] = len(enriched)
+    stats["gts_fetched"] = fetched
+    stats["gts_cached"] = cached
+    stats["gts_failed"] = gts_failed
+    _save_enrich_checkpoint(db, output_path, stats)
 
-    enriched_path = config.output_dir / "word_db_enriched.json"
-    save_json(enriched_path, db)
+    observed_path = _save_observed_tags(config, tag_counts)
     print("\n=== Enrich özeti ===")
-    print(f"  Başlangıç kelime sayısı : {len(tr_words):,}")
+    print(f"  Başlangıç kelime sayısı : {total:,}")
     print(f"  Argo/kaba elenen        : {removed_offensive:,}")
     print(f"  Kalan kelime            : {len(enriched):,}")
+    print(f"  gts hatası (tutuldu)    : {gts_failed:,}")
     print(f"  Yeni gts isteği         : {fetched:,}")
     print(f"  Önbellekten             : {cached:,}")
-    print(f"  Çıktı                   : {enriched_path}")
-    return enriched_path
+    print(f"  Gözlemlenen etiketler   : {observed_path}")
+    print(f"  Çıktı                   : {output_path}")
+    return output_path

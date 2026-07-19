@@ -34,7 +34,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Test için işlenecek maksimum kelime sayısı",
     )
 
-    sub.add_parser("all", help="fetch + build sırasıyla çalıştır")
+    sub.add_parser("all", help="fetch + build + enrich-tr sırasıyla çalıştır")
     return parser
 
 
@@ -52,6 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "all":
         fetch_all(config)
         build_all(config)
+        enrich_tr(config)
     else:
         parser.error(f"Bilinmeyen komut: {args.command}")
         return 2

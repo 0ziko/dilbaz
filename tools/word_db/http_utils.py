@@ -57,3 +57,15 @@ def load_blocklist(path: Path) -> set[str]:
         if word and not word.startswith("#"):
             words.add(word)
     return words
+
+
+def append_json_list(path: Path, item: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        data = load_json(path)
+        if not isinstance(data, list):
+            data = []
+    else:
+        data = []
+    data.append(item)
+    save_json(path, data)
